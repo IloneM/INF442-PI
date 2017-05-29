@@ -1,0 +1,16 @@
+#latex
+*.aux
+*.log
+
+#vim
+*.swp
+
+#gcc
+*.o
+
+#compressed
+*.zip
+*.gzip
+*.7z
+*.rar
+
