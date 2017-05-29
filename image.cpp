@@ -41,76 +41,97 @@ Features* Image::features(Image* integralbuffer) {
 		return NULL;
 
 	int rank;
-	int size;
 	Features* result = NULL;
-	Grid tl({{0,0},{width()-MIN_SIZE,height()-MIN_SIZE}}, STEP, STEP);
 
-	MPI_Status status;
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if(size > 1) {
-		if(rank == 0) {
-			size_t vectsize = tl.cardwidth() * (tl.cardwidth()+1)/2
-			                  * tl.cardheight() * (tl.cardheight()+1)/2
-							  * NB_DIFF_FEATURES;
-			result = new Features(vectsize);
-			
-			Feature receiver;
+	if(!rank) {
+		Grid tl({{0,0},{width()-MIN_SIZE,height()-MIN_SIZE}}, STEP, STEP);
 
-			for(uint32_t i=0; i< vectsize; i++) {
-				MPI_Recv(&receiver, sizeof(Feature), MPI_CHAR, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
-				result->emplace(getKey(receiver), getValue(receiver));
-			}
-		} else {
-			uint32_t workerstep = tl.cardsize() / (size-1);
-
-			Grid::iterator tlend;
-			if(rank == size-1)
-				tlend = tl.end();
-			else
-				tlend = tl.fromindex(rank*workerstep);
-			
-			Feature buffer;
-			std::pair<FeatureType, pixel> features[NB_DIFF_FEATURES];
-
-			for(Grid::iterator tlit=tl.fromindex((rank-1)*workerstep); tlit < tlend; tlit++) {
-				Grid br({{tlit->x + MIN_SIZE, tlit->y + MIN_SIZE},{width(),height()}}, STEP, STEP);
-
-				for(Grid::iterator brit = br.begin(); brit < br.end(); brit++) {
-					getPos(buffer) = {*tlit, *brit};
-					computeFeaturesOn(getPos(buffer), integralbuffer, features);
-					for(int i=0; i< NB_DIFF_FEATURES; i++) {
-						getFt(buffer) = features[i].first;
-						getValue(buffer) = features[i].second;
-						MPI_Send(&buffer, sizeof(Feature), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-					}
-				}
-			}
-		}
-	} else {
-		size_t vectsize = tl.cardwidth() * (tl.cardwidth()+1)/2
-		                  * tl.cardheight() * (tl.cardheight()+1)/2
-						  * NB_DIFF_FEATURES;
-		result = new Features(vectsize);
-
+		result = new Features( /* size when both grids have same same xstep and ystep. See report for proof */
+					tl.cardwidth() * (tl.cardwidth()+1)/2
+		            * tl.cardheight() * (tl.cardheight()+1)/2
+					* NB_DIFF_FEATURES
+				 );
 		Feature buffer;
-		std::pair<FeatureType, pixel> features[NB_DIFF_FEATURES];
+
+		int size;
+		MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 		for(Grid::iterator tlit=tl.begin(); tlit < tl.end(); tlit++) {
 			Grid br({{tlit->x + MIN_SIZE, tlit->y + MIN_SIZE},{width(),height()}}, STEP, STEP);
 
 			for(Grid::iterator brit = br.begin(); brit < br.end(); brit++) {
 				getPos(buffer) = {*tlit, *brit};
-				computeFeaturesOn(getPos(buffer), integralbuffer, features);
+				if(size > 1) {
+					MPI_Status status;
+					do {
+						MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+						if(status.MPI_TAG == 0) {
+							for(int i=0; i< NB_DIFF_FEATURES; i++) {
+								MPI_Recv(&buffer, sizeof(Feature), MPI_CHAR, status.MPI_SOURCE, 0, MPI_COMM_WORLD,
+										 MPI_STATUS_IGNORE);
+								result->emplace(getKey(buffer), getValue(buffer));
+							}
+						} else if(status.MPI_TAG == 1) {
+							MPI_Recv(NULL, 0, MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+							Rect& instruct = getPos(buffer);
+							MPI_Send(&instruct, sizeof(Rect), MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD);
+						}
+					} while(status.MPI_TAG);
+				} else {
+					std::pair<FeatureType, pixel> features[NB_DIFF_FEATURES];
+					computeFeaturesOn(getPos(buffer), integralbuffer, features);
 
-				for(int i=0; i< NB_DIFF_FEATURES; i++) {
-					getFt(buffer) = features[i].first;
-					getValue(buffer) = features[i].second;
-					result->emplace(getKey(buffer), getValue(buffer));
+					for(int i=0; i< NB_DIFF_FEATURES; i++) {
+						getFt(buffer) = features[i].first;
+						getValue(buffer) = features[i].second;
+						result->emplace(getKey(buffer), getValue(buffer));
+					}
 				}
 			}
 		}
+		if(size > 1) {
+			for(int i=1; i< size; i++) {
+				MPI_Status status;
+				do {
+					MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+					if(status.MPI_TAG == 0) {
+						for(int i=0; i< NB_DIFF_FEATURES; i++) {
+							MPI_Recv(&buffer, sizeof(Feature), MPI_CHAR, status.MPI_SOURCE, 0, MPI_COMM_WORLD,
+									 MPI_STATUS_IGNORE);
+							result->emplace(getKey(buffer), getValue(buffer));
+						}
+					} else if(status.MPI_TAG == 1) {
+						MPI_Recv(NULL, 0, MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+						MPI_Send(NULL, 0, MPI_CHAR, status.MPI_SOURCE, 0, MPI_COMM_WORLD);
+					}
+				} while(status.MPI_TAG != 1);
+			}
+		}
+	} else {
+		Feature buffer;
+		std::pair<FeatureType, pixel> features[NB_DIFF_FEATURES];
+		MPI_Status status;
+
+		do {
+			MPI_Send(NULL, 0, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
+			MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+			if(status.MPI_TAG == 0) {
+				MPI_Recv(NULL, 0, MPI_CHAR,
+						 status.MPI_SOURCE, 0, MPI_COMM_WORLD,
+						 MPI_STATUS_IGNORE);
+			} if(status.MPI_TAG == 1) {
+				Rect& instruct = getPos(buffer);
+				MPI_Recv(&instruct, sizeof(Rect), MPI_CHAR, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				computeFeaturesOn(instruct, integralbuffer, features);
+				for(int i=0; i< NB_DIFF_FEATURES; i++) {
+					getFt(buffer) = features[i].first;
+					getValue(buffer) = features[i].second;
+					MPI_Send(&buffer, sizeof(Feature), MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+				}
+			} 
+		} while(status.MPI_TAG);
 	}
 	return result;
 }
