@@ -30,6 +30,8 @@ struct FeatureKey {
 	bool operator==(const FeatureKey& other) const;
 };
 
+typedef std::unordered_map<FeatureKey, pixel> Features;
+
 namespace std {
   template <>
   struct hash<Point>
@@ -49,8 +51,6 @@ namespace std {
     size_t operator()(const FeatureKey& k) const;
   };
 }
-
-typedef std::unordered_map<FeatureKey, pixel> Features;
 
 inline FeatureKey getKey(Feature& f) {return {f.pos, f.ft};}
 

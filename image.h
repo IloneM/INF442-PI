@@ -5,6 +5,7 @@
 #include <CImg.h>
 #include "feature.h"
 #include <utility>
+#include <vector>
 
 typedef cimg_library::CImg<pixel> Pixelmap;
 
@@ -23,6 +24,7 @@ public:
 	static Image* integral(Image* input, Image* output);
 	inline Image* integral(Image* output);
 
+	Features* features(Image* integralbuffer, std::vector<Rect>& workertargets);
 	Features* features(Image* integralbuffer);
 protected:
 	void computeFeaturesOn(const Rect& pos, const Image* integralofthis, std::pair<FeatureType, pixel>* output);
@@ -33,6 +35,7 @@ public:
 	PMImage(const pixel* dat, const int& w, const int& h);
 	PMImage(const int& w, const int& h);
 	PMImage(const char* const filename);
+//	inline PMImage(const std::string& filename) : PMImage(filename.c_str()) {};
 	PMImage(const PMImage& other);
 	PMImage(const Pixelmap& other);
 

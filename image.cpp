@@ -36,7 +36,8 @@ Image* Image::integral(Image* output) {
 	return NULL;
 }
 
-Features* Image::features(Image* integralbuffer) {
+//Features* Image::features(Image* integralbuffer) {
+Features* features(Image* integralbuffer, std::vector<Rect>& workertargets) {
 	if(!integral(integralbuffer))
 		return NULL;
 
@@ -64,21 +65,29 @@ Features* Image::features(Image* integralbuffer) {
 			for(Grid::iterator brit = br.begin(); brit < br.end(); brit++) {
 				getPos(buffer) = {*tlit, *brit};
 				if(size > 1) {
-					MPI_Status status;
-					do {
-						MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-						if(status.MPI_TAG == 0) {
-							for(int i=0; i< NB_DIFF_FEATURES; i++) {
-								MPI_Recv(&buffer, sizeof(Feature), MPI_CHAR, status.MPI_SOURCE, 0, MPI_COMM_WORLD,
-										 MPI_STATUS_IGNORE);
-								result->emplace(getKey(buffer), getValue(buffer));
+					if(workertargets.empty()) {
+						MPI_Status status;
+						do {
+							MPI_Probe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+							if(status.MPI_TAG == 0) {
+								for(int i=0; i< NB_DIFF_FEATURES; i++) {
+									MPI_Recv(&buffer, sizeof(Feature), MPI_CHAR, status.MPI_SOURCE, 0, MPI_COMM_WORLD,
+											 MPI_STATUS_IGNORE);
+									result->emplace(getKey(buffer), getValue(buffer));
+								}
+							} else if(status.MPI_TAG == 1) {
+								MPI_Recv(NULL, 0, MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+								Rect& instruct = getPos(buffer);
+								MPI_Send(&instruct, sizeof(Rect), MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD);
 							}
-						} else if(status.MPI_TAG == 1) {
-							MPI_Recv(NULL, 0, MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-							Rect& instruct = getPos(buffer);
-							MPI_Send(&instruct, sizeof(Rect), MPI_CHAR, status.MPI_SOURCE, 1, MPI_COMM_WORLD);
+						} while(status.MPI_TAG);
+					} else {
+						for(int i=0; i< NB_DIFF_FEATURES; i++) {
+							MPI_Recv(&buffer, sizeof(Feature), MPI_CHAR, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD,
+									 MPI_STATUS_IGNORE);
+							result->emplace(getKey(buffer), getValue(buffer));
 						}
-					} while(status.MPI_TAG);
+					}
 				} else {
 					std::pair<FeatureType, pixel> features[NB_DIFF_FEATURES];
 					computeFeaturesOn(getPos(buffer), integralbuffer, features);
@@ -91,7 +100,7 @@ Features* Image::features(Image* integralbuffer) {
 				}
 			}
 		}
-		if(size > 1) {
+		if(size > 1 and workertargets.empty()) {
 			for(int i=1; i< size; i++) {
 				MPI_Status status;
 				do {
@@ -108,6 +117,7 @@ Features* Image::features(Image* integralbuffer) {
 					}
 				} while(status.MPI_TAG != 1);
 			}
+			workertargets.push_back(Rect());
 		}
 	} else {
 		Feature buffer;
