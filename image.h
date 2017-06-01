@@ -11,6 +11,8 @@ typedef cimg_library::CImg<pixel> Pixelmap;
 
 class Image {
 public:
+	Image() : workertargets(NULL), workertargetsinitialized(false) {}
+	
 	virtual pixel* data() const=0;
 	virtual uint32_t width() const=0;
 	virtual uint32_t height() const=0;
@@ -24,10 +26,15 @@ public:
 	static Image* integral(Image* input, Image* output);
 	inline Image* integral(Image* output);
 
-	Features* features(Image* integralbuffer, std::vector<Rect>& workertargets);
-	Features* features(Image* integralbuffer);
+	Features* features(Image* integralbuffer, bool useowntargets=false);
+//	Features* features(Image* integralbuffer, std::vector<Rect>& workertargets);
+
+	inline std::vector<Rect>* getWorkertargets() { return workertargets; }
 protected:
 	void computeFeaturesOn(const Rect& pos, const Image* integralofthis, std::pair<FeatureType, pixel>* output);
+
+	protected std::vector<Rect>* workertargets;
+	bool workertargetsinitialized;
 };
 
 class PMImage : public Image, public Pixelmap {
