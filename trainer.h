@@ -14,19 +14,66 @@
 #define NB_POS 1637
 
 #define IMG_SUFFIX ".jpg"
+#define NEG_PREFIX "./neg/im"
+#define POS_PREFIX "./pos/im"
 
 typedef std::unordered_map<FeatureKey, Perceptron> Classifiers;
 
 class Trainer {
 public:
+	virtual void start(int K)=0;
+};
+
+class RootTrainer : public Trainer {
+public:
+	RootTrainer() : initialized(false), nbfeatures(0) {}
+
+	virtual void start(int K);
+
+	Features* computeFeatures() { computeFeatures(true); }
+protected:
+	virtual void init();
+
+	virtual Features* computeFeatures(bool returnsthg = false);
+
+	bool initialized;
+	int nbworkers;
+	unsigned nbfeatures;
+};
+
+class WorkersTrainer : public Trainer {
+public:
+	WorkersTrainers(Image* _integral) : workerclassifiers(0), workertargets(0), workerfeatures(0),
+										/*initialized(false)*/ integral(_integral) {}
+
+	virtual void start(int _K);
+
+protected:
+	virtual void init();
+
+	virtual Features* computeFeatures(unsigned imgID, featclass_t fc);
+
+	int rank;
+//	bool initialized;
+
+	std::vector<Rect> workertargets;
+	std::vector<std::vector<Feature>> workerfeatures;
+	std::vector<Perceptron> workerclassifiers;
+	Image* integral;
+
+	int K;
+};
+
+//class Trainer {
+//public:
 //	Trainer() : classifierstorage(), featuresstorage(NB_NEG+NB_POS, NULL), 
 
-	static Classifiers* train(const std::string& path, const unsigned int& K, const weights_t& eps=EPS)
-protected:
-	void trainstep(const Features* features);
+//	static Classifiers* train(const std::string& path, const unsigned int& K, const weights_t& eps=EPS)
+//protected:
+//	void trainstep(const Features* features);
 	
 //	std::vector<Features*> featuresstorage;
 //	Classifiers classifierstorage;
-};
+//};
 
 #endif

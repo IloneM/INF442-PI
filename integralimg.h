@@ -11,11 +11,14 @@ typedef cimg_library::CImg<pixel> Pixelmap;
 
 class Image {
 public:
-	Image() : workertargets(NULL), workertargetsinitialized(false) {}
+//	Image() { integral(this, this);  }
+	Image();
 	
+	virtual pixel* data()=0;
 	virtual pixel* data() const=0;
 	virtual uint32_t width() const=0;
 	virtual uint32_t height() const=0;
+	virtual 
 
 	virtual inline pixel& at(const int& x, const int& y) const {return data()[x+y*width()];}
 	virtual inline pixel& operator()(const int& x, const int& y) const {return at(x,y);}
@@ -23,18 +26,12 @@ public:
 	virtual inline pixel& at(const Point& p) const {return at(p.x,p.y);}
 	virtual inline pixel& operator()(const Point& p) const {return at(p);}
 
-	static Image* integral(Image* input, Image* output);
-	inline Image* integral(Image* output);
+	static Image* integral(const Image* input, Image* output);
+//	inline Image* integral(Image* output);
 
-	Features* features(Image* integralbuffer, bool useowntargets=false);
+//	Features* features(Image* integralbuffer, bool useowntargets=false);
 //	Features* features(Image* integralbuffer, std::vector<Rect>& workertargets);
-
-	inline std::vector<Rect>* getWorkertargets() { return workertargets; }
-protected:
-	void computeFeaturesOn(const Rect& pos, std::pair<FeatureType, pixel>* output);
-
-	std::vector<Rect>* workertargets;
-	bool workertargetsinitialized;
+	std::pair<FeatureType, pixel>* computeFeaturesOn(const Rect& pos, std::pair<FeatureType, pixel>* output);
 };
 
 class PMImage : public Image, public Pixelmap {
@@ -46,18 +43,12 @@ public:
 	PMImage(const PMImage& other);
 	PMImage(const Pixelmap& other);
 
-	~PMImage(); 
+	virtual pixel* data() { return (pixel*)Pixelmap::data(); }
+	virtual pixel* data() const { return (pixel*)Pixelmap::data(); }
+	virtual uint32_t width() const { return Pixelmap::width(); }
+	virtual uint32_t height() const { return Pixelmap::height(); }
 
-	virtual pixel* data() const { return (pixel*)Pixelmap::data(); };
-	virtual uint32_t width() const { return Pixelmap::width(); };
-	virtual uint32_t height() const { return Pixelmap::height(); };
-
-	inline PMImage* integral();
-
-	inline Features* features() { return Image::features(init_integralbuffer()); }
-protected:
-	PMImage* integralbuffer;
-	PMImage* init_integralbuffer();
+//	inline Features* features() { return Image::features(init_integralbuffer()); }
 };
 
 #endif

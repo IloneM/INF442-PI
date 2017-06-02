@@ -4,12 +4,12 @@
 #include "feature.h"
 
 typedef double weights_t;
-typedef uint8_t featclass_t
+typedef uint8_t featclass_t;
 
 struct PerceptronWeights {
 	weights_t wa; // aka wi1
 	weights_t wb;
-}
+};
 
 class Perceptron {
 public:
