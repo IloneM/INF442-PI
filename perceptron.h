@@ -6,6 +6,11 @@
 typedef double weights_t;
 typedef uint8_t featclass_t
 
+struct PerceptronWeights {
+	weights_t wa; // aka wi1
+	weights_t wb;
+}
+
 class Perceptron {
 public:
 	Perceptron(const weights_t& _eps) : eps(_eps), wa(1), wb(0) {}
@@ -16,6 +21,9 @@ public:
 		wa -= eps * (operator(pixel) - fc) * feature;
 		wb -= eps * (operator(pixel) - fc);
 	}
+
+	PerceptronWeights getWeights(){ return {wa, wb};}
+
 
 protected:
 	weights_t wa; // aka wi1
