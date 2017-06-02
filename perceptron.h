@@ -1,4 +1,4 @@
-#define PERCEPTRON_H
+#ifndef PERCEPTRON_H
 #define PERCEPTRON_H
 
 #include "feature.h"
@@ -13,16 +13,18 @@ struct PerceptronWeights {
 
 class Perceptron {
 public:
+	Perceptron() : eps(1e-6), wa(1), wb(0) {}
 	Perceptron(const weights_t& _eps) : eps(_eps), wa(1), wb(0) {}
 
-	inline featclass_t operator()(const pixel& feature) { return (wa * feature + wb >= 0?1:-1); }
+	inline featclass_t eval(const pixel& feature) { return (wa * feature + wb >= 0?1:-1); }
+	inline featclass_t operator()(const pixel& feature) { return eval(feature); }
 
 	void train(const pixel& feature, const featclass_t& fc) {
-		wa -= eps * (operator(pixel) - fc) * feature;
-		wb -= eps * (operator(pixel) - fc);
+		wa -= eps * (eval(feature) - fc) * feature;
+		wb -= eps * (eval(feature) - fc);
 	}
 
-	PerceptronWeights getWeights(){ return {wa, wb};}
+	inline PerceptronWeights getWeights(){ return {wa, wb}; }
 
 
 protected:

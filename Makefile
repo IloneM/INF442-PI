@@ -3,8 +3,8 @@ CXX = mpic++
 RM = rm -f
 
 # object files it depends on
-OBJS = tools.o feature.o image.o
-BIN = imgtest
+OBJS = tools.o feature.o integralimg.o trainer.o
+BIN = train
 
 LATEXTARGET = rapport
 LATEXFILE = $(LATEXTARGET).tex
@@ -67,6 +67,9 @@ clean: cleanlatex cleanbin
 
 totclean: clean
 	$(RM) $(BIN) $(LATEXOUT)
+
+trainer.o: trainer.cpp trainer.h perceptron.h Makefile
+	$(CXX) $(FLAGS) $(INCLUDE) -c -o $@ $<
 
 %.o:	%.cpp %.h Makefile
 	$(CXX) $(FLAGS) $(INCLUDE) -c -o $@ $<

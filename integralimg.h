@@ -12,13 +12,13 @@ typedef cimg_library::CImg<pixel> Pixelmap;
 class Image {
 public:
 //	Image() { integral(this, this);  }
-	Image();
+//	Image();
 	
 	virtual pixel* data()=0;
 	virtual pixel* data() const=0;
 	virtual uint32_t width() const=0;
 	virtual uint32_t height() const=0;
-	virtual 
+	virtual void load(const char* path)=0;
 
 	virtual inline pixel& at(const int& x, const int& y) const {return data()[x+y*width()];}
 	virtual inline pixel& operator()(const int& x, const int& y) const {return at(x,y);}
@@ -27,11 +27,10 @@ public:
 	virtual inline pixel& operator()(const Point& p) const {return at(p);}
 
 	static Image* integral(const Image* input, Image* output);
-//	inline Image* integral(Image* output);
 
-//	Features* features(Image* integralbuffer, bool useowntargets=false);
-//	Features* features(Image* integralbuffer, std::vector<Rect>& workertargets);
 	std::pair<FeatureType, pixel>* computeFeaturesOn(const Rect& pos, std::pair<FeatureType, pixel>* output);
+protected:
+	bool initialized;
 };
 
 class PMImage : public Image, public Pixelmap {
@@ -43,6 +42,7 @@ public:
 	PMImage(const PMImage& other);
 	PMImage(const Pixelmap& other);
 
+	virtual void load(const char* path) { Pixelmap::load(path); }
 	virtual pixel* data() { return (pixel*)Pixelmap::data(); }
 	virtual pixel* data() const { return (pixel*)Pixelmap::data(); }
 	virtual uint32_t width() const { return Pixelmap::width(); }

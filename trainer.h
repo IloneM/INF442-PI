@@ -2,7 +2,7 @@
 #define TRAINER_H
 
 #include "feature.h"
-#include "image.h"
+#include "integralimg.h"
 #include "perceptron.h"
 #include <string>
 #include <mpi.h>
@@ -17,6 +17,8 @@
 #define NEG_PREFIX "./neg/im"
 #define POS_PREFIX "./pos/im"
 
+#define IMG_DIMS {112,92}
+
 typedef std::unordered_map<FeatureKey, Perceptron> Classifiers;
 
 class Trainer {
@@ -26,32 +28,32 @@ public:
 
 class RootTrainer : public Trainer {
 public:
-	RootTrainer() : initialized(false), nbfeatures(0) {}
+	RootTrainer() : /*initialized(false),*/ nbfeatures(0) {}
 
 	virtual void start(int K);
 
-	Features* computeFeatures() { computeFeatures(true); }
+	Features* uselessComputeFeatures() { computeFeatures(true); }
 protected:
 	virtual void init();
 
 	virtual Features* computeFeatures(bool returnsthg = false);
 
-	bool initialized;
+//	bool initialized;
 	int nbworkers;
 	unsigned nbfeatures;
 };
 
 class WorkersTrainer : public Trainer {
 public:
-	WorkersTrainers(Image* _integral) : workerclassifiers(0), workertargets(0), workerfeatures(0),
-										/*initialized(false)*/ integral(_integral) {}
+	WorkersTrainer(Image* _integral) : workerclassifiers(0), workertargets(0), workerfeatures(0), integral(_integral) {}
+//										/*initialized(false)*/ integral(NULL) {}
 
-	virtual void start(int _K);
+	virtual void start(int K);
 
 protected:
 	virtual void init();
 
-	virtual Features* computeFeatures(unsigned imgID, featclass_t fc);
+	virtual Features* computeFeatures(unsigned imgID);
 
 	int rank;
 //	bool initialized;
@@ -60,8 +62,6 @@ protected:
 	std::vector<std::vector<Feature>> workerfeatures;
 	std::vector<Perceptron> workerclassifiers;
 	Image* integral;
-
-	int K;
 };
 
 //class Trainer {
