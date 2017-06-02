@@ -10,12 +10,14 @@
 #define EPS 1e-6
 
 /* better: use filesystem */
-#define NB_NEG 8831
-#define NB_POS 1637
+#define NB_NEG 4415
+#define NB_POS 818
+
+#define TRAIN_DIR(path) "./app/" path
 
 #define IMG_SUFFIX ".jpg"
-#define NEG_PREFIX "./neg/im"
-#define POS_PREFIX "./pos/im"
+#define NEG_PREFIX TRAIN_DIR("neg/im")
+#define POS_PREFIX TRAIN_DIR("pos/im")
 
 #define IMG_DIMS {112,92}
 

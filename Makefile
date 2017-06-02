@@ -13,7 +13,7 @@ LATEXOUT = $(patsubst %.tex,%.pdf,$(LATEXFILE)) $(patsubst %.tex,%.ps,$(LATEXFIL
 LATEXBIN = pdflatex
 
 # remove command
-DEBUG =        # 1=YES, [empty] = no
+DEBUG = 1        # 1=YES, [empty] = no
 SETUP = ubuntu # possibilities: macosx, ubuntu, sallesinfo
 
 DEFINES =

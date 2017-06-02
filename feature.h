@@ -13,7 +13,7 @@ inline void hash_combine(std::size_t& seed, const T& v);
 #define NB_DIFF_FEATURES 4
 
 //typedef signed char pixel;
-typedef uint32_t pixel;
+typedef int32_t pixel;
 
 enum FeatureType {vsplit, hsplit, cantor, checked};
 

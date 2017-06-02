@@ -4,7 +4,7 @@
 #include "feature.h"
 
 typedef double weights_t;
-typedef uint8_t featclass_t;
+typedef int8_t featclass_t;
 
 struct PerceptronWeights {
 	weights_t wa; // aka wi1
@@ -20,6 +20,7 @@ public:
 	inline featclass_t operator()(const pixel& feature) { return eval(feature); }
 
 	void train(const pixel& feature, const featclass_t& fc) {
+//		std::cout << feature << ' ' << (int)fc << ' ' << (int)eval(feature) << '\n';
 		wa -= eps * (eval(feature) - fc) * feature;
 		wb -= eps * (eval(feature) - fc);
 	}

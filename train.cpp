@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
 	Trainer* trainer;
 
 	if(rank) {
-		Rect dims = IMG_DIMS;
-		trainer = new WorkersTrainer(new PMImage(Rectfuncs::width(dims), Rectfuncs::height(dims)));
+		Point dims = IMG_DIMS;
+		trainer = new WorkersTrainer(new PMImage(dims.x, dims.y));
 	} else {
 		trainer = new RootTrainer();
 	}

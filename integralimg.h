@@ -29,8 +29,6 @@ public:
 	static Image* integral(const Image* input, Image* output);
 
 	std::pair<FeatureType, pixel>* computeFeaturesOn(const Rect& pos, std::pair<FeatureType, pixel>* output);
-protected:
-	bool initialized;
 };
 
 class PMImage : public Image, public Pixelmap {
@@ -42,7 +40,10 @@ public:
 	PMImage(const PMImage& other);
 	PMImage(const Pixelmap& other);
 
-	virtual void load(const char* path) { Pixelmap::load(path); }
+	virtual void load(const char* path) {
+		Pixelmap::load(path);
+		integral(this, this);
+	}
 	virtual pixel* data() { return (pixel*)Pixelmap::data(); }
 	virtual pixel* data() const { return (pixel*)Pixelmap::data(); }
 	virtual uint32_t width() const { return Pixelmap::width(); }

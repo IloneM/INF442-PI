@@ -85,17 +85,17 @@ Features* RootTrainer::computeFeatures(bool returnsthg) {
 			result->emplace(getKey(buffer), getValue(buffer));
 		}
 	}
-	MPI_Barrier(MPI_COMM_WORLD);
 	return result;
 }
 
 Features* WorkersTrainer::computeFeatures(unsigned imgID) {
 //	if(!initialized) init();
-
-	if(workerfeatures[imgID].size()) return NULL;
-
 	uint8_t returnsthg;
 	MPI_Bcast(&returnsthg, 1, MPI_BYTE, 0, MPI_COMM_WORLD);
+
+	if(workerfeatures[imgID].size() and !returnsthg) {
+		return NULL;
+	}
 
 	Feature buffer;
 	std::pair<FeatureType, pixel> features[NB_DIFF_FEATURES];
@@ -104,17 +104,18 @@ Features* WorkersTrainer::computeFeatures(unsigned imgID) {
 	for(int i=0; i< workertargets.size(); i++) {
 		getPos(buffer) = workertargets[i];
 		integral->computeFeaturesOn(getPos(buffer), features);
+
 		for(int j=0; j< NB_DIFF_FEATURES; j++) {
-			getFt(buffer) = features[i].first;
-			getValue(buffer) = features[i].second;
+			getFt(buffer) = features[j].first;
+			getValue(buffer) = features[j].second;
 			imgfeatures[i*NB_DIFF_FEATURES + j] = buffer;
 			if(returnsthg)
 				MPI_Send(&buffer, 1, MPI_BYTE, 0, 0, MPI_COMM_WORLD);
 		}
 	}
+
 	workerfeatures[imgID] = imgfeatures;
 
-	MPI_Barrier(MPI_COMM_WORLD);
 	return NULL;
 }
 
@@ -122,7 +123,8 @@ void RootTrainer::start(int K) {
 //	if(!initialized) init();
 	
 	int choice;
-	std::default_random_engine generator;
+//	std::default_random_engine generator;
+	std::mt19937 generator(time(0));
 	std::uniform_int_distribution<int> distribution(0,NB_NEG+NB_POS-1);
 
 	init();
@@ -133,6 +135,8 @@ void RootTrainer::start(int K) {
 		MPI_Bcast(&choice, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 		computeFeatures();
+
+		std::cout << "round " << i+1 << '\n';
 	}
 }
 
@@ -144,6 +148,7 @@ void WorkersTrainer::start(int K) {
 		MPI_Bcast(&choice, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 		featclass_t imgc = (choice>NB_NEG?1:-1);
+//		std::cout << (int)imgc << '\n';//<< ' ' << (int)eval(feature) << '\n';
 
 		std::string filepath;
 		if(choice > NB_NEG) {
@@ -157,8 +162,13 @@ void WorkersTrainer::start(int K) {
 		computeFeatures(choice);
 
 		for(int j=0; j< workerclassifiers.size(); j++) {
+//			std::cout << "features: " << getValue(workerfeatures[choice][j]) << '\n';
 			workerclassifiers[j].train(getValue(workerfeatures[choice][j]), imgc);
 		}
+	}
+	for(int i=0; i< workerclassifiers.size(); i++) {
+		std::cout << "wa" << workerclassifiers[i].getWeights().wa << '\n';
+		std::cout << "wb" << workerclassifiers[i].getWeights().wb << '\n';
 	}
 }
 
